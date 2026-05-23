@@ -56,6 +56,9 @@ def admin_panel_kb() -> InlineKeyboardMarkup:
         InlineKeyboardButton(text="🚫 Block User",        callback_data="adm_block_user"),
     )
     builder.row(
+        InlineKeyboardButton(text="✏️ Welcome Message",   callback_data="adm_welcome_msg"),
+    )
+    builder.row(
         InlineKeyboardButton(text="🔙 Close Panel",       callback_data="adm_close"),
     )
     return builder.as_markup()
@@ -82,6 +85,41 @@ def confirm_broadcast_kb() -> InlineKeyboardMarkup:
     builder.row(
         InlineKeyboardButton(text="✅ Send Now",   callback_data="bc_confirm"),
         InlineKeyboardButton(text="❌ Cancel",     callback_data="adm_close"),
+    )
+    return builder.as_markup()
+
+
+def welcome_msg_kb() -> InlineKeyboardMarkup:
+    """Welcome message management panel."""
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text="✏️ Edit Message",    callback_data="wm_edit"),
+        InlineKeyboardButton(text="👁 Preview",         callback_data="wm_preview"),
+    )
+    builder.row(
+        InlineKeyboardButton(text="🔄 Reset to Default", callback_data="wm_reset"),
+    )
+    builder.row(
+        InlineKeyboardButton(text="🔙 Admin Panel",     callback_data="adm_panel"),
+    )
+    return builder.as_markup()
+
+
+def confirm_welcome_msg_kb() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text="✅ Save",       callback_data="wm_save"),
+        InlineKeyboardButton(text="✏️ Re-edit",    callback_data="wm_edit"),
+        InlineKeyboardButton(text="❌ Cancel",     callback_data="adm_welcome_msg"),
+    )
+    return builder.as_markup()
+
+
+def confirm_reset_kb() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text="✅ Yes, Reset", callback_data="wm_reset_confirm"),
+        InlineKeyboardButton(text="❌ Cancel",     callback_data="adm_welcome_msg"),
     )
     return builder.as_markup()
 

@@ -38,8 +38,8 @@ class ForceChannel(Base):
     __tablename__ = "force_channels"
 
     id           = Column(Integer, primary_key=True, autoincrement=True)
-    channel_id   = Column(String(64), unique=True, nullable=False)   # e.g. -1001234567890
-    channel_link = Column(String(256), nullable=False)               # e.g. https://t.me/channelname
+    channel_id   = Column(String(64), unique=True, nullable=False)
+    channel_link = Column(String(256), nullable=False)
     channel_name = Column(String(128), nullable=False)
 
 
@@ -54,10 +54,35 @@ class BroadcastLog(Base):
     timestamp  = Column(Integer, default=lambda: int(time.time()))
 
 
+class BotSetting(Base):
+    """Generic key-value store for bot settings (welcome message, etc.)"""
+    __tablename__ = "bot_settings"
+
+    key   = Column(String(64), primary_key=True)
+    value = Column(Text, nullable=False)
+
+
 # ── Init ──────────────────────────────────────────────────────────────────────
 async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+
+# ── Settings helpers ──────────────────────────────────────────────────────────
+async def get_setting(key: str, default: str = "") -> str:
+    async with async_session_factory() as session:
+        row = await session.get(BotSetting, key)
+        return row.value if row else default
+
+
+async def set_setting(key: str, value: str) -> None:
+    async with async_session_factory() as session:
+        row = await session.get(BotSetting, key)
+        if row:
+            row.value = value
+        else:
+            session.add(BotSetting(key=key, value=value))
+        await session.commit()
 
 
 # ── User helpers ──────────────────────────────────────────────────────────────
@@ -126,7 +151,6 @@ async def get_force_channels() -> list[ForceChannel]:
 
 async def add_force_channel(channel_id: str, channel_link: str, channel_name: str) -> bool:
     """Returns True on success, False if already exists."""
-    # FIX: was using __import__("sqlalchemy").select(...) hack — replaced with clean import at top
     async with async_session_factory() as session:
         existing = await session.execute(
             select(ForceChannel).where(ForceChannel.channel_id == channel_id)

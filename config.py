@@ -1,30 +1,40 @@
-import os
-from dotenv import load_dotenv
+# Environment
+.env
+*.env
 
-load_dotenv()
+# Database
+*.db
+*.db-shm
+*.db-wal
 
-# ── Bot Configuration ─────────────────────────────────────────────────────────
-BOT_TOKEN: str = os.getenv("BOT_TOKEN", "")
-BOT_USERNAME: str = os.getenv("BOT_USERNAME", "")   # without @
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+.venv/
+env/
+ENV/
 
-# ── Admin IDs (comma-separated in env) ───────────────────────────────────────
-_raw_admins = os.getenv("ADMIN_IDS", "")
-ADMIN_IDS: list[int] = [
-    int(x.strip()) for x in _raw_admins.split(",") if x.strip().isdigit()
-]
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# ── Database ──────────────────────────────────────────────────────────────────
-DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///bot.db")
+# Logs
+*.log
 
-# ── Anti-Spam / Rate-Limiting ─────────────────────────────────────────────────
-RATE_LIMIT_SECONDS: int = int(os.getenv("RATE_LIMIT_SECONDS", "3"))
+# OS
+.DS_Store
+Thumbs.db
 
-# ── Broadcast ─────────────────────────────────────────────────────────────────
-BROADCAST_DELAY: float = float(os.getenv("BROADCAST_DELAY", "0.05"))  # sec between sends
-
-# ── Texts ─────────────────────────────────────────────────────────────────────
-BOT_NAME: str = os.getenv("BOT_NAME", "MyBot")
-WELCOME_TEXT: str = os.getenv(
-    "WELCOME_TEXT",
-    "👋 Welcome to <b>{bot_name}</b>!\n\nTo use this bot, please join all required channels first.",
-)
+# camoufox profile
+.camoufox-cli/

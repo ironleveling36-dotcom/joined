@@ -3,39 +3,78 @@ Utility helpers.
 """
 from __future__ import annotations
 
+import logging
+
 from aiogram import Bot
-from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError, TelegramAPIError
 
 from database import ForceChannel, get_force_channels
 import config
+
+logger = logging.getLogger(__name__)
+
+# Statuses that mean the user is NOT in the channel
+NOT_MEMBER_STATUSES = ("left", "kicked")
 
 
 async def check_membership(bot: Bot, user_id: int) -> tuple[bool, list[ForceChannel]]:
     """
     Returns (all_joined: bool, not_joined_channels: list[ForceChannel]).
-    If there are no force channels configured, returns (True, []).
-
-    ChatMemberStatus values that mean NOT a member:
-      left      – user left on their own
-      kicked    – user was banned
-      restricted – user is restricted (may or may not be able to read)
-    We intentionally do NOT block on "restricted" alone — Telegram considers
-    restricted users as still being in the chat. Only "left" and "kicked"
-    mean the user hasn't joined.
+    Logs exactly what status Telegram returns for each channel — helps debug.
     """
     channels = await get_force_channels()
     if not channels:
         return True, []
 
     not_joined: list[ForceChannel] = []
+
     for ch in channels:
+        # Normalize channel_id: always pass as int if it's a numeric string
         try:
-            member = await bot.get_chat_member(chat_id=ch.channel_id, user_id=user_id)
-            # FIX: "restricted" users ARE members — removed it from the block list
-            if member.status in ("left", "kicked"):
+            chat_id = int(ch.channel_id)
+        except ValueError:
+            # Username format like @mychannel — pass as-is
+            chat_id = ch.channel_id
+
+        try:
+            member = await bot.get_chat_member(chat_id=chat_id, user_id=user_id)
+            status = member.status
+
+            logger.info(
+                f"[MemberCheck] user={user_id} channel={ch.channel_id}({ch.channel_name}) "
+                f"→ status={status}"
+            )
+
+            if status in NOT_MEMBER_STATUSES:
                 not_joined.append(ch)
-        except (TelegramBadRequest, TelegramForbiddenError):
-            # Bot not an admin in channel or invalid channel ID
+
+        except TelegramForbiddenError as e:
+            # Bot is NOT an admin in the channel or was kicked from it
+            logger.warning(
+                f"[MemberCheck] FORBIDDEN for channel={ch.channel_id}({ch.channel_name}): {e}. "
+                f"Make sure the bot is an ADMIN in that channel."
+            )
+            not_joined.append(ch)
+
+        except TelegramBadRequest as e:
+            # Invalid channel ID or user not found
+            logger.warning(
+                f"[MemberCheck] BAD_REQUEST for channel={ch.channel_id}({ch.channel_name}): {e}. "
+                f"Check that channel_id is correct (use numeric ID like -1001234567890)."
+            )
+            not_joined.append(ch)
+
+        except TelegramAPIError as e:
+            # Any other Telegram API error
+            logger.error(
+                f"[MemberCheck] API_ERROR for channel={ch.channel_id}({ch.channel_name}): {e}"
+            )
+            not_joined.append(ch)
+
+        except Exception as e:
+            logger.error(
+                f"[MemberCheck] UNEXPECTED error for channel={ch.channel_id}: {e}"
+            )
             not_joined.append(ch)
 
     return len(not_joined) == 0, not_joined
